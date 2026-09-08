@@ -1,0 +1,29 @@
+# Unity 生成的目录（体积大，不该进版本库）
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]serSettings/
+/.vs/
+/.idea/
+
+# 上传的截图等临时文件
+/uploads/
+
+# Codely/Tuanjie AI 工具扩展（本地工具，不是项目内容）
+/.codely-cli/
+/.com-unity-codely.json
+
+# IDE/系统文件
+*.csproj
+*.sln
+*.user
+*.pidb
+*.booproj
+*.svd
+*.userprefs
+.vsconfig
+.DS_Store
+Thumbs.db
