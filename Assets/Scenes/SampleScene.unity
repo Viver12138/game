@@ -144,7 +144,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 432436, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.0000019073486
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 432436, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
       propertyPath: m_LocalPosition.z
@@ -193,11 +193,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 947930445}
+      addedObject: {fileID: 947930446}
     - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 947930446}
+      addedObject: {fileID: 947930447}
+    - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 947930448}
   m_SourcePrefab: {fileID: 100100000, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
 --- !u!1 &330585543
 GameObject:
@@ -498,7 +502,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_IsGlobal: 1
+  m_IsGlobal: 0
   priority: 0
   blendDistance: 0
   weight: 1
@@ -531,6 +535,7 @@ GameObject:
   - component: {fileID: 941777788}
   - component: {fileID: 941777787}
   - component: {fileID: 941777786}
+  - component: {fileID: 941777791}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
@@ -550,7 +555,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 357ce71c328f56f45b915a337d3554a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 4883410210830421420, guid: d5de492623ec4854492b808acbe754f3,
+  enemyPrefab: {fileID: 2760754154412788453, guid: d5de492623ec4854492b808acbe754f3,
     type: 3}
   interval: 3
 --- !u!64 &941777787
@@ -640,6 +645,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &941777791
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 941777785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0acd050f325a4643a182ae3ffd37c66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &947930441 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff,
@@ -676,18 +693,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 267380459}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &947930445
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 947930441}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f0acd050f325a4643a182ae3ffd37c66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &947930446
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -702,6 +707,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hp: 100
   invincibleTime: 1
+--- !u!114 &947930447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 947930441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2536fe87827857c4ca23890fbb1dc4af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  exp: 0
+  level: 1
+  expToNext: 5
+--- !u!136 &947930448
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 947930441}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2.5
+  m_Direction: 1
+  m_Center: {x: 0, y: 1.3, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -9,6 +9,7 @@ public class PlayerExp : MonoBehaviour
     public void GainExp(int amount)
     {
         exp += amount;
+        Debug.Log("获得经验 +" + amount + "，当前经验：" + exp + " / " + expToNext);   // 每次吸收都提示
         if (exp >= expToNext)
         {
             exp = 0;
