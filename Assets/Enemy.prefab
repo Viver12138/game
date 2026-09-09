@@ -334,10 +334,10 @@ MonoBehaviour:
   speed: 2
   chaseRange: 10
   attackRange: 2
-  hp: 5
+  hp: 2
   damage: 10
   attackInterval: 1
-  expOrbPrefab: {fileID: 6270694955240138468, guid: 022b6344379ffa444aa0638564b11bc7,
+  expOrbPrefab: {fileID: 69273996081415687, guid: 8c9e177dc3edc534ab3deb992f3a37d4,
     type: 3}
   dropCount: 1
   dropOffset: 0.5
