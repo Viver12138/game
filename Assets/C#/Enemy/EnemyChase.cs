@@ -1,11 +1,24 @@
 using UnityEngine;
 
+[System.Serializable]
+public class DropInfo
+{
+    public int minCount = 1;
+    public int maxCount = 3;
+    public int expValue = 1;
+    public float orbScale = 1f;
+    public float scatterForce = 2f;
+}
+
+
 public class EnemyChase : MonoBehaviour
 {
     [Header("移动参数")]
     public float speed = 2f;
     public float chaseRange = 10f;      // 开始追逐的距离
     public float attackRange = 2f;      // 攻击距离
+
+    public DropInfo drop;   
 
     [Header("生命参数")]
     public int hp = 3;
@@ -17,7 +30,8 @@ public class EnemyChase : MonoBehaviour
 
     [Header("掉落参数")]
     public GameObject expOrbPrefab;
-    public int dropCount = 1;
+    public int minDrop = 1;
+    public int maxDrop = 3;
     public float dropOffset = 0.5f;
 
     [Header("组件")]
@@ -194,13 +208,21 @@ public class EnemyChase : MonoBehaviour
     {
         if (expOrbPrefab == null) return;
 
-        for (int i = 0; i < dropCount; i++)
+        int count = Random.Range(minDrop, maxDrop + 1);
+
+        for (int i = 0; i < count; i++)
         {
             Vector3 offset = Random.insideUnitSphere * dropOffset;
             offset.y = 0;
+            GameObject go = Instantiate(expOrbPrefab, transform.position + offset, Quaternion.identity);
+            ExpOrb orb = go.GetComponent<ExpOrb>();
+            if (orb == null) continue;
             Instantiate(expOrbPrefab, transform.position + offset, Quaternion.identity);
+            Vector3 scatter = Random.insideUnitSphere * drop.scatterForce;
+            scatter.y = Mathf.Abs(scatter.y) * 0.6f + 0.3f;
+            orb.velocity = scatter;
         }
-        Debug.Log($"敌人死亡，掉落 {dropCount} 个经验球");
+        Debug.Log($"敌人死亡，掉落 {count} 个经验球");
     }
 
     /// <summary>

@@ -334,12 +334,20 @@ MonoBehaviour:
   speed: 2
   chaseRange: 10
   attackRange: 2
+  scatterForce: 3
+  drop:
+    minCount: 1
+    maxCount: 3
+    expValue: 1
+    orbScale: 1
+    scatterForce: 2
   hp: 2
   damage: 10
   attackInterval: 1
   expOrbPrefab: {fileID: 69273996081415687, guid: 8c9e177dc3edc534ab3deb992f3a37d4,
     type: 3}
-  dropCount: 1
+  minDrop: 1
+  maxDrop: 5
   dropOffset: 0.5
 --- !u!136 &1837543842215939059
 CapsuleCollider:
