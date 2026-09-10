@@ -39,6 +39,13 @@ public class EnemyChase : MonoBehaviour
     private Animator animator;
     private bool isAttacking;
 
+    [Header("游荡参数")]
+    public bool wanderOnIdle = true;       // 玩家远处时：true=瞎晃 / false=原地站
+    public float wanderRadius = 6f;        // 游荡范围
+    public float wanderInterval = 3f;      // 每隔多久换个游荡点
+    private Vector3 wanderTarget;
+    private float lastWanderTime;
+
     void Start()
     {
         // 获取玩家
@@ -54,6 +61,8 @@ public class EnemyChase : MonoBehaviour
 
         // 获取动画组件
         animator = GetComponent<Animator>();
+
+        wanderTarget = RandomWanderTarget();
     }
 
     void Update()
@@ -83,8 +92,9 @@ public class EnemyChase : MonoBehaviour
         }
         else
         {
-            // 待机状态
-            IdleBehavior();
+            // 待机 可以瞎晃 也可以原地站
+            if (wanderOnIdle) WanderBehavior();
+            else IdleBehavior();
         }
 
         // ===== 更新动画 =====
@@ -99,19 +109,44 @@ public class EnemyChase : MonoBehaviour
         isAttacking = false;
         attackTimer = 0;
 
-        // 解决追击时会往天上飞的问题
-        Vector3 dir = player.position - transform.position;
-        dir.y = 0;                                // 只在水平面追
-        if (dir.sqrMagnitude > 0.001f) dir.Normalize();
-        transform.position += dir * speed * Time.deltaTime;
-        // 面向玩家
-        if (dir != Vector3.zero)
+        // 到玩家的水平方向（抹平 Y，射线和移动都用它，不会朝上偏）
+        Vector3 toPlayer = player.position - transform.position;
+        toPlayer.y = 0;
+
+        // ===== 障碍绕行 =====
+        RaycastHit hit;
+        if (toPlayer.sqrMagnitude > 0.001f &&
+            Physics.Raycast(transform.position, toPlayer.normalized, out hit, 1.5f) &&
+            hit.collider.CompareTag("Obstacle"))
         {
-            Quaternion targetRotation = Quaternion.LookRotation(dir);
+            // 沿障碍表面切线方向绕（Cross 与 up 叉积即得水平切线）
+            Vector3 tangent = Vector3.Cross(toPlayer.normalized, Vector3.up).normalized;
+            Vector3 mvDir = Vector3.Dot(tangent, toPlayer) > 0 ? tangent : -tangent;
+            transform.position += mvDir * speed * Time.deltaTime;
+            return;
+        }
+
+        // ===== 正常追击（只有前方没障碍才走到这）=====
+        if (toPlayer.sqrMagnitude > 0.001f)
+        {
+            toPlayer.Normalize();
+            Vector3 step = toPlayer * speed * Time.deltaTime;
+            if (!MoveBlocked(toPlayer, step.magnitude))
+                transform.position += step;
+
+            Quaternion targetRotation = Quaternion.LookRotation(toPlayer);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
+            Vector3 p = transform.position;
+            if (MapGenerator.GroundBounds.size.x > 1f)
+            {
+                p.x = Mathf.Clamp(p.x, MapGenerator.GroundBounds.min.x + 0.5f,
+                                       MapGenerator.GroundBounds.max.x - 0.5f);
+                p.z = Mathf.Clamp(p.z, MapGenerator.GroundBounds.min.z + 0.5f,
+                                       MapGenerator.GroundBounds.max.z - 0.5f);
+            }
+            transform.position = p;
         }
     }
-
     /// <summary>
     /// 攻击行为
     /// </summary>
@@ -217,12 +252,16 @@ public class EnemyChase : MonoBehaviour
             GameObject go = Instantiate(expOrbPrefab, transform.position + offset, Quaternion.identity);
             ExpOrb orb = go.GetComponent<ExpOrb>();
             if (orb == null) continue;
-            Instantiate(expOrbPrefab, transform.position + offset, Quaternion.identity);
             Vector3 scatter = Random.insideUnitSphere * drop.scatterForce;
             scatter.y = Mathf.Abs(scatter.y) * 0.6f + 0.3f;
             orb.velocity = scatter;
         }
         Debug.Log($"敌人死亡，掉落 {count} 个经验球");
+    }
+
+    void Awake()
+    {
+        if (drop == null) drop = new DropInfo();
     }
 
     /// <summary>
@@ -250,5 +289,79 @@ public class EnemyChase : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+    }
+
+    void WanderBehavior()
+    {
+        isAttacking = false;
+        attackTimer = 0;
+
+        // 到点/到时间就换个游荡点
+        if (Time.time - lastWanderTime >= wanderInterval)
+        {
+            lastWanderTime = Time.time;
+            wanderTarget = RandomWanderTarget();
+        }
+
+        Vector3 dir = wanderTarget - transform.position;
+        dir.y = 0;                                  // 只在水平面走
+        if (dir.magnitude < 0.5f)
+        {
+            wanderTarget = RandomWanderTarget();    // 到了就换
+            return;
+        }
+
+        dir.Normalize();
+        Vector3 step = dir * speed * 0.6f * Time.deltaTime;
+        if (!MoveBlocked(dir, step.magnitude))
+            transform.position += step;
+        Face(dir);
+    }
+
+    bool MoveBlocked(Vector3 dir, float dist)
+    {
+        // 从脚底上方腰高度发射，避开地面/自己碰撞体底边的缝
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+
+        // 前方那一步 + 0.5 米余量有没有墙/石头，有就提前停，别靠到贴边
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, dist + 0.5f) &&
+            hit.collider.CompareTag("Obstacle"))
+            return true;
+
+        // 兜底：如果当前已经压着障碍（比如之前从没被挡时钻进去了），也视为被挡住
+        Collider[] near = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, 0.3f);
+        foreach (Collider c in near)
+            if (c.CompareTag("Obstacle"))
+                return true;
+
+        return false;
+    }
+
+    Vector3 RandomWanderTarget()
+    {
+        Vector3 t = transform.position +
+            new Vector3(Random.Range(-wanderRadius, wanderRadius), 0,
+                        Random.Range(-wanderRadius, wanderRadius));
+        return ClampToMap(t);                       // 别晃出地图
+    }
+
+    // 把位置钳回地图内（追击/游荡共用）
+    Vector3 ClampToMap(Vector3 p)
+    {
+        if (MapGenerator.GroundBounds.size.x > 1f)
+        {
+            p.x = Mathf.Clamp(p.x, MapGenerator.GroundBounds.min.x + 0.5f,
+                                   MapGenerator.GroundBounds.max.x - 0.5f);
+            p.z = Mathf.Clamp(p.z, MapGenerator.GroundBounds.min.z + 0.5f,
+                                   MapGenerator.GroundBounds.max.z - 0.5f);
+        }
+        return p;
+    }
+
+    void Face(Vector3 horizontalDir)
+    {
+        if (horizontalDir.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.Slerp(transform.rotation,
+                Quaternion.LookRotation(horizontalDir), 5f * Time.deltaTime);
     }
 }

@@ -311,7 +311,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 6f59bcb09c6a5e04aa422b9d6a4a7479, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -334,14 +334,13 @@ MonoBehaviour:
   speed: 2
   chaseRange: 10
   attackRange: 2
-  scatterForce: 3
   drop:
     minCount: 1
     maxCount: 3
     expValue: 1
     orbScale: 1
     scatterForce: 2
-  hp: 2
+  hp: 10
   damage: 10
   attackInterval: 1
   expOrbPrefab: {fileID: 69273996081415687, guid: 8c9e177dc3edc534ab3deb992f3a37d4,
@@ -349,6 +348,9 @@ MonoBehaviour:
   minDrop: 1
   maxDrop: 5
   dropOffset: 0.5
+  wanderOnIdle: 1
+  wanderRadius: 6
+  wanderInterval: 3
 --- !u!136 &1837543842215939059
 CapsuleCollider:
   m_ObjectHideFlags: 0

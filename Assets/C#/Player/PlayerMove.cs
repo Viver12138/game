@@ -94,8 +94,11 @@ public class PlayerMove : MonoBehaviour
         attackTimer = 0;
         isAttacking = true;
 
-        GameObject bullet = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
-        bullet.GetComponent<Bullet>().dir = directionToEnemy;
+        Vector3 chest = transform.position + directionToEnemy * 0.7f + Vector3.up * 0.3f;
+        Vector3 aim = (nearest.transform.position - chest).normalized;
+
+        GameObject bullet = Instantiate(bulletPrefab, chest, Quaternion.identity);
+        bullet.GetComponent<Bullet>().dir = aim;
     }
 
     /// <summary>
