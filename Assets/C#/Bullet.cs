@@ -4,6 +4,7 @@ public class Bullet : MonoBehaviour
 {
     public float speed = 10f;
     public Vector3 dir;                 // 发射时由玩家传入方向
+    public int damage = 1;              // 伤害（武器/玩家发射时设置）
     public float checkPadding = 0.05f;  // 前方探测余量
 
     void Update()
@@ -29,11 +30,9 @@ public class Bullet : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            var chase = other.GetComponent<EnemyChase>();
-            if (chase != null) { chase.hp -= 1; }
-
+            other.GetComponent<EnemyChase>()?.TakeDamage(damage);   // 用伤害值
             Destroy(gameObject);
         }
-        // 注意：障碍不再在 OnTriggerEnter 里处理，改由 Update 的射线判定
+        // 障碍改由 Update 的射线高度判定，不在这里处理
     }
 }
