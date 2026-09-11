@@ -69,6 +69,9 @@ public class MapGenerator : MonoBehaviour
                 float s = Random.Range(minScale, maxScale);
                 go.transform.localScale *= s;
                 go.name = "Obstacle_" + i;
+                // 不依赖 prefab 自带的标签，实例统一打 Obstacle：
+                // 敌人绕行射线、刷怪点避让、子弹阻挡都靠这个标签识别障碍
+                go.tag = "Obstacle";
 
                 placed.Add(pos);
                 ok++;

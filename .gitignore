@@ -27,3 +27,5 @@
 .vsconfig
 .DS_Store
 Thumbs.db
+# 本地工具扩展
+/.codely/

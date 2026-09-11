@@ -340,7 +340,7 @@ MonoBehaviour:
     expValue: 1
     orbScale: 1
     scatterForce: 2
-  hp: 10
+  hp: 1
   damage: 10
   attackInterval: 1
   expOrbPrefab: {fileID: 69273996081415687, guid: 8c9e177dc3edc534ab3deb992f3a37d4,
