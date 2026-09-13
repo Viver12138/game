@@ -69,7 +69,7 @@ public class GameManager : MonoBehaviour
     {
         if (State == GameState.Playing)
         {
-            GUI.Label(new Rect(10, 10, 300, 30), "存活时间：" + playTime.ToString("F1") + " 秒");
+            //GUI.Label(new Rect(10, 10, 300, 30), "存活时间：" + playTime.ToString("F1") + " 秒");
         }
         else if (State == GameState.GameOver)
         {
