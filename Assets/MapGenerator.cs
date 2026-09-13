@@ -1,5 +1,7 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
+using Unity.AI.Navigation;
+using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
 {
@@ -37,6 +39,12 @@ public class MapGenerator : MonoBehaviour
 
     List<Vector3> placed = new List<Vector3>();   // 记录已放障碍，防重叠
 
+    [Header("导航")]
+    public NavMeshSurface navMeshSurface;
+
+    public static bool NavReady;   // 运行时刷出的敌人可据此判断 NavMesh 是否已烘焙
+    public static event Action OnMapGenerated;
+
     void Start()
     {
         MapHalfX = mapHalfX;      
@@ -51,26 +59,26 @@ public class MapGenerator : MonoBehaviour
         if (obstaclePrefabs == null || obstaclePrefabs.Length == 0)
         {
             Debug.LogWarning("未配置任何障碍 prefab，跳过障碍生成");
+            StartCoroutine(BakeRoutine());
             return;
         }
 
         int ok = 0;
         for (int i = 0; i < obstacleCount; i++)
         {
-            for (int tries = 0; tries < 60; tries++)   // 每个障碍最多试 60 个位置
+            for (int tries = 0; tries < 60; tries++)
             {
                 Vector3 pos = RandomPosition();
-                if (!IsValid(pos, player)) continue;   // 四层约束不过就换位置
+                if (!IsValid(pos, player)) continue;
 
-                // 随机挑一种障碍 × 随机朝向 × 随机大小
-                GameObject prefab = obstaclePrefabs[Random.Range(0, obstaclePrefabs.Length)];
+                
+                GameObject prefab = obstaclePrefabs[UnityEngine.Random.Range(0, obstaclePrefabs.Length)];
                 GameObject go = Instantiate(prefab, pos,
-                    Quaternion.Euler(0, Random.Range(0f, 360f), 0));
-                float s = Random.Range(minScale, maxScale);
+                    Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0));
+
+                float s = UnityEngine.Random.Range(minScale, maxScale);
                 go.transform.localScale *= s;
                 go.name = "Obstacle_" + i;
-                // 不依赖 prefab 自带的标签，实例统一打 Obstacle：
-                // 敌人绕行射线、刷怪点避让、子弹阻挡都靠这个标签识别障碍
                 go.tag = "Obstacle";
 
                 placed.Add(pos);
@@ -79,8 +87,15 @@ public class MapGenerator : MonoBehaviour
             }
         }
         Debug.Log($"战场生成完成：地面{(generateGround ? "已生成" : "未生成")}，障碍 {ok}/{obstacleCount}");
+        StartCoroutine(BakeRoutine());
     }
-
+    System.Collections.IEnumerator BakeRoutine()
+    {
+        yield return null;
+        navMeshSurface.BuildNavMesh();
+        NavReady = true;            // 标记 NavMesh 已就绪
+        OnMapGenerated?.Invoke();   // 通知所有敌人：NavMesh 好了
+    }
     // ============ 地面 ============
     void SpawnGround()
     {
@@ -105,9 +120,9 @@ public class MapGenerator : MonoBehaviour
     {
         // 只在内部取，避开边缘刷怪留白带
         return new Vector3(
-            Random.Range(-mapHalfX + spawnBand, mapHalfX - spawnBand),
+            UnityEngine.Random.Range(-mapHalfX + spawnBand, mapHalfX - spawnBand),
             obstacleY,
-            Random.Range(-mapHalfZ + spawnBand, mapHalfZ - spawnBand));
+            UnityEngine.Random.Range(-mapHalfZ + spawnBand, mapHalfZ - spawnBand));
     }
 
     bool IsValid(Vector3 pos, Transform player)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 [System.Serializable]
 public class DropInfo
@@ -10,15 +11,14 @@ public class DropInfo
     public float scatterForce = 2f;
 }
 
-
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyChase : MonoBehaviour
 {
     [Header("移动参数")]
-    public float speed = 2f;
     public float chaseRange = 10f;      // 开始追逐的距离
     public float attackRange = 2f;      // 攻击距离
 
-    public DropInfo drop;   
+    public DropInfo drop;
 
     [Header("生命参数")]
     public int hp = 3;
@@ -37,116 +37,90 @@ public class EnemyChase : MonoBehaviour
     [Header("组件")]
     private Transform player;
     private Animator animator;
+    private NavMeshAgent agent;
     private bool isAttacking;
+    private bool navReady = false;
 
-    [Header("游荡参数")]
-    public bool wanderOnIdle = true;       // 玩家远处时：true=瞎晃 / false=原地站
-    public float wanderRadius = 6f;        // 游荡范围
-    public float wanderInterval = 3f;      // 每隔多久换个游荡点
-    private Vector3 wanderTarget;
-    private float lastWanderTime;
+    void Awake()
+    {
+        if (drop == null) drop = new DropInfo();
+
+        agent = GetComponent<NavMeshAgent>();
+        agent.enabled = false;   // 等 NavMesh 烘焙好再启用
+    }
 
     void Start()
     {
-        // 获取玩家
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
+        if (playerObj != null) player = playerObj.transform;
+        else Debug.LogWarning("未找到Tag为'Player'的对象！");
+
+        animator = GetComponent<Animator>();
+    }
+
+    void OnEnable()
+    {
+        MapGenerator.OnMapGenerated += OnNavReady;
+        // 运行时刷出的敌人：订阅时事件可能早就触发过，若 NavMesh 已就绪则直接启用
+        if (MapGenerator.NavReady) OnNavReady();
+    }
+
+    void OnDisable()
+    {
+        MapGenerator.OnMapGenerated -= OnNavReady;
+    }
+
+    /// <summary>
+    /// NavMesh 烘焙完成后调用：启用 Agent 并吸附到最近的导航点
+    /// </summary>
+    void OnNavReady()
+    {
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 5f, NavMesh.AllAreas))
         {
-            player = playerObj.transform;
+            agent.enabled = true;
+            agent.Warp(hit.position);
+            navReady = true;
         }
         else
         {
-            Debug.LogWarning("未找到Tag为'Player'的对象！");
+            Debug.LogWarning($"{name} 附近没有 NavMesh，无法启用寻路");
         }
-
-        // 获取动画组件
-        animator = GetComponent<Animator>();
-
-        wanderTarget = RandomWanderTarget();
     }
 
     void Update()
     {
-        // 死亡检测
         if (hp <= 0)
         {
             Die();
             return;
         }
 
-        // 没有玩家则不执行
-        if (player == null) return;
+        if (!navReady || player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        // ===== 行为决策 =====
         if (distance <= attackRange)
-        {
-            // 攻击状态
             AttackBehavior();
-        }
         else if (distance <= chaseRange)
-        {
-            // 追逐状态
             ChaseBehavior();
-        }
         else
-        {
-            // 待机 可以瞎晃 也可以原地站
-            if (wanderOnIdle) WanderBehavior();
-            else IdleBehavior();
-        }
+            IdleBehavior();
 
-        // ===== 更新动画 =====
         UpdateAnimation();
     }
 
     /// <summary>
-    /// 追逐行为
+    /// 追逐行为：交给 NavMeshAgent
     /// </summary>
     void ChaseBehavior()
     {
         isAttacking = false;
         attackTimer = 0;
 
-        // 到玩家的水平方向（抹平 Y，射线和移动都用它，不会朝上偏）
-        Vector3 toPlayer = player.position - transform.position;
-        toPlayer.y = 0;
-
-        // ===== 障碍绕行 =====
-        RaycastHit hit;
-        if (toPlayer.sqrMagnitude > 0.001f &&
-            Physics.Raycast(transform.position, toPlayer.normalized, out hit, 1.5f) &&
-            hit.collider.CompareTag("Obstacle"))
-        {
-            // 沿障碍表面切线方向绕（Cross 与 up 叉积即得水平切线）
-            Vector3 tangent = Vector3.Cross(toPlayer.normalized, Vector3.up).normalized;
-            Vector3 mvDir = Vector3.Dot(tangent, toPlayer) > 0 ? tangent : -tangent;
-            transform.position += mvDir * speed * Time.deltaTime;
-            return;
-        }
-
-        // ===== 正常追击（只有前方没障碍才走到这）=====
-        if (toPlayer.sqrMagnitude > 0.001f)
-        {
-            toPlayer.Normalize();
-            Vector3 step = toPlayer * speed * Time.deltaTime;
-            if (!MoveBlocked(toPlayer, step.magnitude))
-                transform.position += step;
-
-            Quaternion targetRotation = Quaternion.LookRotation(toPlayer);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
-            Vector3 p = transform.position;
-            if (MapGenerator.GroundBounds.size.x > 1f)
-            {
-                p.x = Mathf.Clamp(p.x, MapGenerator.GroundBounds.min.x + 0.5f,
-                                       MapGenerator.GroundBounds.max.x - 0.5f);
-                p.z = Mathf.Clamp(p.z, MapGenerator.GroundBounds.min.z + 0.5f,
-                                       MapGenerator.GroundBounds.max.z - 0.5f);
-            }
-            transform.position = p;
-        }
+        if (agent.isOnNavMesh)
+            agent.SetDestination(player.position);
     }
+
     /// <summary>
     /// 攻击行为
     /// </summary>
@@ -154,7 +128,9 @@ public class EnemyChase : MonoBehaviour
     {
         isAttacking = true;
 
-        // 面向玩家
+        // 停下并面向玩家
+        if (agent.isOnNavMesh) agent.ResetPath();
+
         Vector3 dir = player.position - transform.position;
         dir.y = 0;
         if (dir != Vector3.zero)
@@ -163,7 +139,6 @@ public class EnemyChase : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
         }
 
-        // 攻击冷却
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackInterval)
         {
@@ -179,17 +154,14 @@ public class EnemyChase : MonoBehaviour
     {
         isAttacking = false;
         attackTimer = 0;
-        // 可添加随机待机动作（如转头、小幅度移动）
+
+        if (agent.isOnNavMesh) agent.ResetPath();
     }
 
-    /// <summary>
-    /// 执行攻击
-    /// </summary>
     void Attack()
     {
         if (player == null) return;
 
-        // 再次检查距离（防止攻击时玩家已跑远）
         float dist = Vector3.Distance(transform.position, player.position);
         if (dist > attackRange) return;
 
@@ -201,44 +173,24 @@ public class EnemyChase : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 更新动画参数
-    /// </summary>
     void UpdateAnimation()
     {
         if (animator == null) return;
 
-        // Speed：移动速度（0=待机，>0=移动）
-        float currentSpeed = isAttacking ? 0 : speed;
-        animator.SetFloat("Speed", currentSpeed);
+        // 用 Agent 的实际速度驱动动画，比固定 speed 更准
+        float currentSpeed = (agent.enabled && agent.isOnNavMesh) ? agent.velocity.magnitude : 0f;
+        if (isAttacking) currentSpeed = 0f;
 
-        // IsAttacking：攻击状态
+        animator.SetFloat("Speed", currentSpeed);
         animator.SetBool("IsAttacking", isAttacking);
     }
 
-    /// <summary>
-    /// 死亡逻辑
-    /// </summary>
     void Die()
     {
-        // 掉落经验球
         DropExpOrbs();
-
-        // 播放死亡动画（如果有）
-        if (animator != null)
-        {
-            // 可以添加死亡状态
-            // animator.SetTrigger("Die");
-        }
-
-        // 延迟销毁，让死亡动画播放
-        // Destroy(gameObject, 0.5f);
         Destroy(gameObject);
     }
 
-    /// <summary>
-    /// 掉落经验球
-    /// </summary>
     void DropExpOrbs()
     {
         if (expOrbPrefab == null) return;
@@ -259,29 +211,13 @@ public class EnemyChase : MonoBehaviour
         Debug.Log($"敌人死亡，掉落 {count} 个经验球");
     }
 
-    void Awake()
-    {
-        if (drop == null) drop = new DropInfo();
-    }
-
-    /// <summary>
-    /// 受击（可被外部调用，如子弹击中）
-    /// </summary>
     public void TakeDamage(int damage)
     {
         hp -= damage;
         Debug.Log($"敌人受到 {damage} 点伤害，剩余 HP：{hp}");
-
-        // 播放受击动画（如果有）
-        // if (animator != null) animator.SetTrigger("Hurt");
-
-        if (hp <= 0)
-        {
-            Die();
-        }
+        if (hp <= 0) Die();
     }
 
-    // ===== 可视化调试 =====
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -289,79 +225,5 @@ public class EnemyChase : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
-    }
-
-    void WanderBehavior()
-    {
-        isAttacking = false;
-        attackTimer = 0;
-
-        // 到点/到时间就换个游荡点
-        if (Time.time - lastWanderTime >= wanderInterval)
-        {
-            lastWanderTime = Time.time;
-            wanderTarget = RandomWanderTarget();
-        }
-
-        Vector3 dir = wanderTarget - transform.position;
-        dir.y = 0;                                  // 只在水平面走
-        if (dir.magnitude < 0.5f)
-        {
-            wanderTarget = RandomWanderTarget();    // 到了就换
-            return;
-        }
-
-        dir.Normalize();
-        Vector3 step = dir * speed * 0.6f * Time.deltaTime;
-        if (!MoveBlocked(dir, step.magnitude))
-            transform.position += step;
-        Face(dir);
-    }
-
-    bool MoveBlocked(Vector3 dir, float dist)
-    {
-        // 从脚底上方腰高度发射，避开地面/自己碰撞体底边的缝
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-
-        // 前方那一步 + 0.5 米余量有没有墙/石头，有就提前停，别靠到贴边
-        if (Physics.Raycast(origin, dir, out RaycastHit hit, dist + 0.5f) &&
-            hit.collider.CompareTag("Obstacle"))
-            return true;
-
-        // 兜底：如果当前已经压着障碍（比如之前从没被挡时钻进去了），也视为被挡住
-        Collider[] near = Physics.OverlapSphere(transform.position + Vector3.up * 0.5f, 0.3f);
-        foreach (Collider c in near)
-            if (c.CompareTag("Obstacle"))
-                return true;
-
-        return false;
-    }
-
-    Vector3 RandomWanderTarget()
-    {
-        Vector3 t = transform.position +
-            new Vector3(Random.Range(-wanderRadius, wanderRadius), 0,
-                        Random.Range(-wanderRadius, wanderRadius));
-        return ClampToMap(t);                       // 别晃出地图
-    }
-
-    // 把位置钳回地图内（追击/游荡共用）
-    Vector3 ClampToMap(Vector3 p)
-    {
-        if (MapGenerator.GroundBounds.size.x > 1f)
-        {
-            p.x = Mathf.Clamp(p.x, MapGenerator.GroundBounds.min.x + 0.5f,
-                                   MapGenerator.GroundBounds.max.x - 0.5f);
-            p.z = Mathf.Clamp(p.z, MapGenerator.GroundBounds.min.z + 0.5f,
-                                   MapGenerator.GroundBounds.max.z - 0.5f);
-        }
-        return p;
-    }
-
-    void Face(Vector3 horizontalDir)
-    {
-        if (horizontalDir.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.Slerp(transform.rotation,
-                Quaternion.LookRotation(horizontalDir), 5f * Time.deltaTime);
     }
 }

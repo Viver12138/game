@@ -68,6 +68,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Yellow_Tree
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 61d1858d7b7e5fe43bbe9e17e0af703b,
+        type: 3}
+      propertyPath: m_TagString
+      value: Obstacle
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
