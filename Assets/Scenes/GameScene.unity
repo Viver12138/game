@@ -186,6 +186,7 @@ MonoBehaviour:
   playerExp: {fileID: 1644250727}
   healthSlider: {fileID: 1661270149}
   expSlider: {fileID: 505251551}
+  levelText: {fileID: 1776769195}
 --- !u!4 &328003463
 Transform:
   m_ObjectHideFlags: 0
@@ -1585,6 +1586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0acd050f325a4643a182ae3ffd37c66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  score: 0
 --- !u!1 &1776769193
 GameObject:
   m_ObjectHideFlags: 0
