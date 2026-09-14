@@ -29,21 +29,18 @@ public class PlayerExp : MonoBehaviour
         exp += amount;
         Debug.Log("获得经验 +" + amount + "，当前经验：" + exp + " / " + expToNext);
 
-        while (exp >= expToNext)      // 一次可能连升多级
+        bool leveled = false;
+        while (exp >= expToNext)
         {
             exp -= expToNext;
             level++;
             expToNext += 3;
-
-            // 使用缓存的 playerMove，避免每次升级都 GetComponent
-            if (playerMove != null)
-                playerMove.speed += 0.5f;
-
-            Debug.Log("升级了！当前等级：" + level);
+            leveled = true;
         }
 
         // ===== 新增：通知 UI 更新 =====
-        // 放在 while 循环外面，无论是升级还是只加经验，都会触发
         OnExpChanged?.Invoke(exp, expToNext, level);
+        if (leveled)
+            UpgradeManager.Instance.RequestUpgrade();
     }
 }
