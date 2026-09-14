@@ -1,9 +1,7 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;   // 重开场景必须引入
+using UnityEngine.SceneManagement;   
+using System.Collections;
 
-/// <summary>
-/// 游戏状态（定义在类外面，方便所有脚本直接引用）
-/// </summary>
 public enum GameState
 {
     Playing,  // 游戏中
@@ -12,15 +10,20 @@ public enum GameState
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;   // 全局单例，其他脚本通过 GameManager.Instance 访问
+    public static GameManager Instance;
 
     public GameState State { get; private set; } = GameState.Playing;
 
-    float playTime;   // 本次存活时间
+    float playTime;              // 存活时间（秒）
+    public int score = 0;        // 当前分数
+    float scoreTimer;            // 每满 1 秒 +1 分
+    public event System.Action OnScoreGained;  
+    //private float scoreBounceY;
+
+    private float scoreScale = 1f;
 
     void Awake()
     {
-        // 单例保护：场景里只能有一个 GameManager
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -34,48 +37,85 @@ public class GameManager : MonoBehaviour
         if (State == GameState.Playing)
         {
             playTime += Time.deltaTime;
+
+            // 每秒加一分（生存得分）
+            scoreTimer += Time.deltaTime;
+            if (scoreTimer >= 1f) { scoreTimer -= 1f; score++; }
         }
         else if (State == GameState.GameOver)
         {
-            // 游戏结束后按 R 重开
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                Restart();
-            }
+            if (Input.GetKeyDown(KeyCode.R)) Restart();
         }
     }
 
-    /// <summary>
-    /// 玩家死亡时调用：进入游戏结束状态，冻结全场
-    /// </summary>
-    public void GameOver()
+    /// <summary>给分数加分（比如打死一只怪 +10）</summary>
+    public void AddScore(int n)
     {
-        if (State != GameState.Playing) return;   // 防止重复触发
-        State = GameState.GameOver;
-        Debug.Log("游戏结束！存活时间：" + playTime.ToString("F1") + " 秒，按 R 重新开始");
-        Time.timeScale = 0;   // 时间暂停 = 全游戏冻结
+        score += n;
+        if (score < 0) score = 0;
+        OnScoreGained?.Invoke();
+
+        // ===== 击杀就弹跳（StopCoroutine 合并同一帧多杀）=====
+        StopCoroutine(nameof(ScorePop));
+        StartCoroutine(ScorePop());
     }
 
-    /// <summary>
-    /// 重新开始：恢复时间并重载当前场景（所有物体和状态都会重置）
-    /// </summary>
+    public void GameOver()
+    {
+        if (State != GameState.Playing) return;
+        State = GameState.GameOver;
+        Debug.Log($"游戏结束！存活时间 {playTime:F1} 秒，分数 {score}，按 R 重新开始");
+        Time.timeScale = 0;
+    }
+
     public void Restart()
     {
-        Time.timeScale = 1;   // 必须先恢复时间！否则新场景也会冻结
+        Time.timeScale = 1;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     void OnGUI()
     {
+        float yTime = Screen.height - 64;
+        float yScore = Screen.height - 34;
+
         if (State == GameState.Playing)
         {
-            //GUI.Label(new Rect(10, 10, 300, 30), "存活时间：" + playTime.ToString("F1") + " 秒");
+            // 存活时间（左下，不动）
+            GUI.Label(new Rect(10, yTime, 300, 30), "存活时间：" + playTime.ToString("F1") + " 秒");
+
+            // ===== 当前分数 =====
+            string label = "当前分数：  ";
+            Vector2 tw = GUI.skin.label.CalcSize(new GUIContent(label));
+            GUI.Label(new Rect(10, yScore, tw.x, 30), label);            // 文字固定
+
+            // ===== 数字：只放大，留在原位 =====
+            float nx = 10 + tw.x;
+            float ny = yScore;                                          // 不再上移
+            GUI.matrix = Matrix4x4.TRS(new Vector3(nx, ny, 0), Quaternion.identity,
+                                       new Vector3(scoreScale, scoreScale, 1));
+            GUI.Label(new Rect(0, 0, 160, 30), score.ToString());
+            GUI.matrix = Matrix4x4.identity;   // 用完必须还原
         }
         else if (State == GameState.GameOver)
         {
-            GUI.Label(new Rect(10, 10, 300, 60),
-                "游戏结束！\n存活时间：" + playTime.ToString("F1") + " 秒\n按 R 重新开始");
-            // 注意：OnGUI 不受 Time.timeScale 影响，暂停后依然能显示
+            GUI.Label(new Rect(10, yTime, 400, 30), "存活时间：" + playTime.ToString("F1") +
+                " 秒   |   分数：" + score);
+            GUI.Label(new Rect(10, Screen.height - 30, 400, 30), "按 R 重新开始");
         }
     }
+    IEnumerator ScorePop()
+    {
+        const float dur = 0.4f;
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / dur);
+            scoreScale = 1f + 0.35f * Mathf.Sin(k * Mathf.PI);   // 冲到 1.35 再回 1
+            yield return null;
+        }
+        scoreScale = 1f;   // 结束恢复原大小
+    }
+
 }

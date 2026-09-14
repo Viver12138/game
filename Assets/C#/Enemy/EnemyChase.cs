@@ -41,6 +41,9 @@ public class EnemyChase : MonoBehaviour
     private bool isAttacking;
     private bool navReady = false;
 
+    [Header("击杀得分")]
+    public int killScore = 10;
+
     void Awake()
     {
         if (drop == null) drop = new DropInfo();
@@ -188,6 +191,9 @@ public class EnemyChase : MonoBehaviour
     void Die()
     {
         DropExpOrbs();
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddScore(killScore);
+
         Destroy(gameObject);
     }
 
@@ -215,7 +221,11 @@ public class EnemyChase : MonoBehaviour
     {
         hp -= damage;
         Debug.Log($"敌人受到 {damage} 点伤害，剩余 HP：{hp}");
-        if (hp <= 0) Die();
+        if (hp <= 0)
+        {
+            Die();
+            GameManager.Instance.AddScore(10);
+        }
     }
 
     void OnDrawGizmosSelected()
