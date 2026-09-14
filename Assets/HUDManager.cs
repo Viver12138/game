@@ -1,54 +1,110 @@
+ï»¿using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class HUDManager : MonoBehaviour
 {
-    [Header("Êı¾İÔ´")]
+    [Header("æ•°æ®æº")]
     public PlayerHealth playerHealth;
     public PlayerExp playerExp;
 
-    [Header("UI ÒıÓÃ")]
-    public Slider healthSlider;
-    public Slider expSlider;
+    [Header("UI ç»„ä»¶")]
+    public Slider healthSlider;   // è¡€æ¡
+    public Slider expSlider;      // ç»éªŒæ¡
+    public TMP_Text levelText;
+
+    private int lastLevel;                  // ä¸Šä¸€æ¬¡ç­‰çº§ï¼ˆåˆ¤æ–­æ˜¯å¦å‡çº§ï¼‰
+    private Vector3 baseScale = Vector3.one;
+    private Color baseColor = Color.white;
+
+    private Vector2 basePos;
 
     void Start()
     {
-        // ===== ÑªÌõ³õÊ¼»¯ =====
+        // ===== è¡€æ¡ =====
         if (playerHealth != null && healthSlider != null)
         {
             healthSlider.minValue = 0;
-            healthSlider.maxValue = playerHealth.maxHp; // ¶ÔÓ¦ PlayerHealth µÄ maxHp
-            healthSlider.value = playerHealth.hp;       // ¶ÔÓ¦ PlayerHealth µÄ hp
+            healthSlider.maxValue = playerHealth.maxHp;
+            healthSlider.value = playerHealth.hp;
             playerHealth.OnHealthChanged += UpdateHealth;
         }
 
-        // ===== ¾­ÑéÌõ³õÊ¼»¯ =====
+        // ===== ç»éªŒæ¡ =====
         if (playerExp != null && expSlider != null)
         {
             expSlider.minValue = 0;
-            expSlider.maxValue = playerExp.expToNext; // ¶ÔÓ¦ PlayerExp µÄ expToNext
-            expSlider.value = playerExp.exp;          // ¶ÔÓ¦ PlayerExp µÄ exp£¨ÒÑĞŞÕı£©
+            expSlider.maxValue = playerExp.expToNext;
+            expSlider.value = playerExp.exp;
             playerExp.OnExpChanged += UpdateExp;
         }
+
+        // ===== ç­‰çº§æ–‡æœ¬åˆå§‹ =====
+        if (playerExp != null)
+        {
+            lastLevel = playerExp.level;
+            levelText.text = "Lv." + playerExp.level;
+        }
+        if (levelText != null)
+        {
+            baseScale = levelText.rectTransform.localScale;
+            baseColor = levelText.color;
+            basePos = levelText.rectTransform.anchoredPosition;
+        }
+
+
     }
 
     void OnDestroy()
     {
-        // È¡Ïû¶©ÔÄ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
         if (playerHealth != null) playerHealth.OnHealthChanged -= UpdateHealth;
         if (playerExp != null) playerExp.OnExpChanged -= UpdateExp;
     }
 
     void UpdateHealth(int current, int max)
     {
+        if (healthSlider == null) return;
         healthSlider.maxValue = max;
         healthSlider.value = current;
     }
 
     void UpdateExp(int current, int needed, int level)
     {
-        expSlider.maxValue = needed;
-        expSlider.value = current;
-        // Èç¹ûÒÔºóÏëÏÔÊ¾µÈ¼¶ÎÄ±¾£¬¿ÉÒÔÔÚÕâÀï¼Ó£ºlevelText.text = "Lv." + level;
+        if (expSlider != null)
+        {
+            expSlider.maxValue = needed;
+            expSlider.value = current;
+        }
+
+        if (levelText != null)
+        {
+            levelText.text = "Lv." + level;
+
+            // ===== è¿›é˜¶ï¼šå‡äº†ä¸€çº§å°±å¼¹ä¸€ä¸‹+é—ªä¸€ä¸‹ =====
+            if (level > lastLevel)
+            {
+                lastLevel = level;
+                StopCoroutine(nameof(LevelUpPop));   // è¿ç»­å‡çº§ä¹Ÿåªä¼šæ’­æœ€åä¸€æ¬¡
+                StartCoroutine(LevelUpPop());
+            }
+        }
+    }
+
+    /// <summary>ç­‰çº§æ–‡æœ¬ punchï¼šæ”¾å¤§å†²è¿‡å†å›è½ + çŸ­æš‚é—ªè‰²</summary>
+    IEnumerator LevelUpPop()
+    {
+        float upVel = 100f;          // åˆå§‹å‘ä¸Šé€Ÿåº¦ï¼ˆåƒç´ /ç§’ï¼‰â€”â€”å¼¹å¤šé«˜
+        const float gravity = 1600f; // é‡åŠ›ï¼ˆåƒç´ /ç§’Â²ï¼‰â€”â€”å›è½å¤šå¿«
+
+        float y = 0f;
+        while (y > 0f || upVel > 0f)      // è¿˜æ²¡è½åœ°å°±ç»§ç»­
+        {
+            upVel -= gravity * Time.deltaTime;     // é‡åŠ›å‡é€Ÿ
+            y += upVel * Time.deltaTime;
+            levelText.rectTransform.anchoredPosition = basePos + Vector2.up * y;
+            yield return null;
+        }
+        levelText.rectTransform.anchoredPosition = basePos;   // å½’ä½
     }
 }
