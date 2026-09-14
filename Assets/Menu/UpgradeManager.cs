@@ -58,7 +58,7 @@ public class UpgradeManager : MonoBehaviour
         name = "疾风",
         desc = "移动速度 +0.5",
         icon = speedIcon,
-        onChoose = () => { if (player) player.GetComponent<PlayerMove>().speed += 0.5f; }
+        onChoose = () => { if (player) player.GetComponentInChildren<PlayerMove>().speed += 0.5f; }
     };
 
     UpgradeOption DamageUp() => new UpgradeOption
@@ -68,7 +68,7 @@ public class UpgradeManager : MonoBehaviour
         icon = damageIcon,
         onChoose = () =>
         {
-            var holder = player ? player.GetComponent<PlayerWeaponHolder>() : null;
+            var holder = player ? player.GetComponentInChildren<PlayerWeaponHolder>() : null;
             if (holder != null && holder.currentWeapon != null)
                 holder.currentWeapon.damage += 2;
         }
@@ -81,7 +81,7 @@ public class UpgradeManager : MonoBehaviour
         icon = hpIcon,
         onChoose = () =>
         {
-            var h = player ? player.GetComponent<PlayerHealth>() : null;
+            var h = player ? player.GetComponentInChildren<PlayerHealth>() : null;
             if (h != null) { h.maxHp += 20; h.hp += 20; }
         }
     };
@@ -125,6 +125,13 @@ public class UpgradeManager : MonoBehaviour
                 o.onChoose();
                 panelVisible = false;
                 Time.timeScale = 1;      // 恢复游戏
+
+                // 触发升级特效
+                if (player != null)
+                {
+                    var fx = player.GetComponentInChildren<PlayerLevelUpFX>();
+                    if (fx != null) fx.Play();
+                }
             }
         }
     }
