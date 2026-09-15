@@ -40,6 +40,7 @@ public class EnemyChase : MonoBehaviour
     private NavMeshAgent agent;
     private bool isAttacking;
     private bool navReady = false;
+    private bool isDead;        // 防止 Die() 被重复调用（掉落/加分只结算一次）
 
     [Header("击杀得分")]
     public int killScore = 10;
@@ -190,9 +191,13 @@ public class EnemyChase : MonoBehaviour
 
     void Die()
     {
+        if (isDead) return;          // 死亡结算只执行一次
+        isDead = true;
+
         DropExpOrbs();
+        // 统一上报：击杀得分 + 本局击杀数（货币）+ 累计击杀（成就）
         if (GameManager.Instance != null)
-            GameManager.Instance.AddScore(killScore);
+            GameManager.Instance.RegisterKill(killScore);
 
         Destroy(gameObject);
     }
@@ -221,11 +226,7 @@ public class EnemyChase : MonoBehaviour
     {
         hp -= damage;
         Debug.Log($"敌人受到 {damage} 点伤害，剩余 HP：{hp}");
-        if (hp <= 0)
-        {
-            Die();
-            GameManager.Instance.AddScore(10);
-        }
+        if (hp <= 0) Die();   // 击杀得分统一在 Die() 里结算，不在此重复加分
     }
 
     void OnDrawGizmosSelected()

@@ -13,6 +13,9 @@ public class UpgradeManager : MonoBehaviour
     private UpgradeOption[] options;
     private Transform player;
 
+    /// <summary>升级面板是否打开（设置面板据此屏蔽暂停入口，避免双重冻结）</summary>
+    public bool IsOpen => panelVisible;
+
     class UpgradeOption
     {
         public string name;
@@ -58,7 +61,12 @@ public class UpgradeManager : MonoBehaviour
         name = "疾风",
         desc = "移动速度 +0.5",
         icon = speedIcon,
-        onChoose = () => { if (player) player.GetComponentInChildren<PlayerMove>().speed += 0.5f; }
+        onChoose = () =>
+        {
+            if (!player) return;
+            player.GetComponentInChildren<PlayerMove>().speed += 0.5f;
+            CountPick(p => p.speedPicks++);
+        }
     };
 
     UpgradeOption DamageUp() => new UpgradeOption
@@ -71,6 +79,7 @@ public class UpgradeManager : MonoBehaviour
             var holder = player ? player.GetComponentInChildren<PlayerWeaponHolder>() : null;
             if (holder != null && holder.currentWeapon != null)
                 holder.currentWeapon.damage += 2;
+            CountPick(p => p.damagePicks++);
         }
     };
 
@@ -83,8 +92,17 @@ public class UpgradeManager : MonoBehaviour
         {
             var h = player ? player.GetComponentInChildren<PlayerHealth>() : null;
             if (h != null) { h.maxHp += 20; h.hp += 20; }
+            CountPick(p => p.vitPicks++);
         }
     };
+
+    // 累加本局强化选择次数（读档时按次数重算）
+    void CountPick(System.Action<PlayerExp> increment)
+    {
+        if (!player) return;
+        var p = player.GetComponentInChildren<PlayerExp>();
+        if (p != null) increment(p);
+    }
 
     // ===== 面板绘制 =====
     void OnGUI()

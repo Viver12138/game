@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using GameMeta;
 
 public enum GameState
 {
     Playing,   // 游戏中
-    GameOver   // 游戏结束
+    Paused,    // 设置面板暂停
+    GameOver   // 游戏结束（等待重开）
 }
 
 public class GameManager : MonoBehaviour
@@ -15,10 +17,16 @@ public class GameManager : MonoBehaviour
 
     float playTime;
     public int score = 0;
+    int runKills;            // 本局击杀数（=本局待结算货币）
+    int earnedCurrency;      // 本局结算得到的货币（结束面板显示用）
     float scoreTimer;
     int highScore;
     float scoreScale = 1f;
     const string HighScoreKey = "HighScore";
+
+    public float PlayTime => playTime;
+    public int Score => score;
+    public int RunKills => runKills;
 
     void Awake()
     {
@@ -32,10 +40,13 @@ public class GameManager : MonoBehaviour
         State = GameState.Playing;
         Time.timeScale = 1;
         highScore = PlayerPrefs.GetInt(HighScoreKey, 0);
+        MetaStore.Load();
     }
 
     void Update()
     {
+        MetaStore.Tick(Time.unscaledDeltaTime);   // 击杀等高频变更节流落盘
+
         if (State == GameState.Playing)
         {
             playTime += Time.deltaTime;
@@ -45,8 +56,39 @@ public class GameManager : MonoBehaviour
         else if (State == GameState.GameOver)
         {
             if (Input.GetKeyDown(KeyCode.R)) Restart();
-            if (Input.GetKeyDown(KeyCode.M)) SceneManager.LoadScene("MainMenu");  // 或回菜单：见下
+            if (Input.GetKeyDown(KeyCode.M)) ToMainMenu();
         }
+    }
+
+    // ===== 暂停 / 恢复（设置面板使用）=====
+    public void Pause()
+    {
+        if (State != GameState.Playing) return;
+        State = GameState.Paused;
+        Time.timeScale = 0;
+    }
+
+    public void Resume()
+    {
+        if (State != GameState.Paused) return;
+        State = GameState.Playing;
+        Time.timeScale = 1;
+    }
+
+    /// <summary>敌人死亡唯一入口上报：计分 + 本局击杀数 + 累计击杀（成就）</summary>
+    public void RegisterKill(int scoreValue)
+    {
+        runKills++;
+        AddScore(scoreValue);
+        MetaStore.RecordKill();
+    }
+
+    /// <summary>读档恢复计时/分数/击杀数（角色成长由 RunBootstrap 恢复）</summary>
+    public void RestoreRunStats(float time, int savedScore, int kills)
+    {
+        playTime = time;
+        score = savedScore;
+        runKills = kills;
     }
 
     public void AddScore(int n)
@@ -62,19 +104,32 @@ public class GameManager : MonoBehaviour
         if (State != GameState.Playing) return;
         State = GameState.GameOver;
         Time.timeScale = 0;
+
+        // 货币仅在死亡时统一结算（每杀 1 个敌人 = 1 货币）
+        earnedCurrency = runKills;
+        MetaStore.AddCurrency(earnedCurrency);
+        // 槽位存档由玩家手动管理，死亡不删除任何存档
+
         if (score > highScore)
         {
             highScore = score;
             PlayerPrefs.SetInt(HighScoreKey, highScore);
             PlayerPrefs.Save();
         }
-        Debug.Log($"游戏结束！得分 {score}，最高 {highScore}，按 R 重开 / M 回菜单");
+        Debug.Log($"游戏结束！得分 {score}，最高 {highScore}，获得货币 {earnedCurrency}，按 R 重开 / M 回菜单");
     }
 
     public void Restart()
     {
+        RunBootstrap.SlotToLoad = -1;   // R 重开 = 新的一局，不读档
         Time.timeScale = 1;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void ToMainMenu()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene("MainMenu");
     }
 
     IEnumerator ScorePop()
@@ -110,8 +165,13 @@ public class GameManager : MonoBehaviour
         }
         else if (State == GameState.GameOver)
         {
-            GUI.Label(new Rect(10, Screen.height - 64, 400, 30), "得分：" + score + "   最高：" + highScore);
-            GUI.Label(new Rect(10, Screen.height - 30, 400, 30), "按 R 重开 / M 回主菜单");
+            GUI.Label(new Rect(10, Screen.height - 88, 400, 30),
+                "存活时间：" + playTime.ToString("F1") + " 秒");
+            GUI.Label(new Rect(10, Screen.height - 64, 400, 30),
+                "得分：" + score + "   最高：" + highScore);
+            GUI.Label(new Rect(10, Screen.height - 40, 400, 30),
+                "本次获得货币：" + earnedCurrency);
+            GUI.Label(new Rect(10, Screen.height - 16, 400, 30), "按 R 重开 / M 回主菜单");
         }
     }
 }
