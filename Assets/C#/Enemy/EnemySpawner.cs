@@ -59,8 +59,10 @@ public class EnemySpawner : MonoBehaviour
                 if (c.CompareTag("Obstacle")) { blocked = true; break; }
             if (blocked) continue;
 
-            Instantiate(enemyPrefab, pos, Quaternion.identity);
-            return;   // 生成一个就结束，等下个计时
+            GameObject enemy = Instantiate(enemyPrefab, pos, Quaternion.identity);
+            if (CyberpunkSceneStyler.Instance != null)
+                CyberpunkSceneStyler.Instance.StyleEnemy(enemy);
+            return;
         }
         // 试了 30 次都没有好位置 → 本次放弃，下个 interval 再刷
     }

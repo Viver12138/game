@@ -1558,7 +1558,59 @@ ParticleSystem:
     m_Bursts:
     - serializedVersion: 2
       time: 0
-      count: 40
+      countCurve:
+        serializedVersion: 2
+        minMaxState: 0
+        scalar: 30
+        minScalar: 30
+        maxCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0.33333334
+            outWeight: 0.33333334
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0.33333334
+            outWeight: 0.33333334
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        minCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0.33333334
+            outWeight: 0.33333334
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0.33333334
+            outWeight: 0.33333334
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
       cycleCount: 1
       repeatInterval: 0.01
       probability: 1
@@ -5435,7 +5487,7 @@ Transform:
   m_GameObject: {fileID: 448060040}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.054, y: 0.723, z: 0}
+  m_LocalPosition: {x: 0.009, y: 0.723, z: 0.03}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5700,8 +5752,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_IsGlobal: 1
   priority: 0
   blendDistance: 0
@@ -5858,7 +5910,7 @@ PrefabInstance:
     - target: {fileID: 7192991312588562182, guid: 2375619d42045c9468c4f51eb6c2a3df,
         type: 3}
       propertyPath: m_TagString
-      value: Player
+      value: Untagged
       objectReference: {fileID: 0}
     - target: {fileID: 7328492398834372896, guid: 2375619d42045c9468c4f51eb6c2a3df,
         type: 3}
@@ -6029,7 +6081,7 @@ GameObject:
   - component: {fileID: 1190767671}
   m_Layer: 0
   m_Name: Knight
-  m_TagString: Player
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6285,8 +6337,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelUpVfx: {fileID: 448060041}
+  glowColor: {r: 1, g: 1, b: 1, a: 1}
   glowPeak: 5
   glowDuration: 0.6
+  pulseDelay: 0.15
 --- !u!1 &1661270147
 GameObject:
   m_ObjectHideFlags: 0
