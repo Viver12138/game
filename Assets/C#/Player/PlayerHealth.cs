@@ -70,4 +70,12 @@ public class PlayerHealth : MonoBehaviour
     /// 当前血量比例 0~1（备用）
     /// </summary>
     public float HpRatio => (float)hp / maxHp;
+
+    /// <summary>读档恢复：重设生命上限与当前血量，并广播一次让血条同步</summary>
+    public void RestoreState(int savedMaxHp, int savedHp)
+    {
+        maxHp = savedMaxHp;
+        hp = Mathf.Clamp(savedHp, 0, maxHp);
+        OnHealthChanged?.Invoke(hp, maxHp);
+    }
 }

@@ -7,6 +7,11 @@ public class PlayerExp : MonoBehaviour
     public int level = 1;
     public int expToNext = 5;    // 升级所需经验
 
+    // 本局局内三选一强化的选择次数（读档重算用，由 UpgradeManager 回调累加）
+    [System.NonSerialized] public int speedPicks;
+    [System.NonSerialized] public int damagePicks;
+    [System.NonSerialized] public int vitPicks;
+
     // ===== 新增：经验变化事件 =====
     // 参数1：当前经验  参数2：升级所需经验  参数3：当前等级
     public event Action<int, int, int> OnExpChanged;
@@ -42,5 +47,18 @@ public class PlayerExp : MonoBehaviour
         OnExpChanged?.Invoke(exp, expToNext, level);
         if (leveled)
             UpgradeManager.Instance.RequestUpgrade();
+    }
+
+    /// <summary>读档恢复：按存档重设成长状态，并广播一次让 UI 同步</summary>
+    public void RestoreRun(int savedLevel, int savedExp, int savedExpToNext,
+                           int speedPicksCount, int damagePicksCount, int vitPicksCount)
+    {
+        level = savedLevel;
+        exp = savedExp;
+        expToNext = savedExpToNext;
+        speedPicks = speedPicksCount;
+        damagePicks = damagePicksCount;
+        vitPicks = vitPicksCount;
+        OnExpChanged?.Invoke(exp, expToNext, level);
     }
 }
